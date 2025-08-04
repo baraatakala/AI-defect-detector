@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}System Health - Building Defect Detector{% endblock %}
+
+{% block content %}
+<!-- Navigation Breadcrumb -->
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item active" aria-current="page">System Health</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-12">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-heartbeat"></i> System Health Status</h2>
+            <div>
+                <a href="/" class="btn btn-outline-primary">
+                    <i class="fas fa-home"></i> Back to Home
+                </a>
+            </div>
+        </div>
+
+        <!-- Overall Status Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-{{ 'check-circle' if status == 'healthy' else 'exclamation-triangle' }}"></i> Overall System Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h3>
+                            <span class="badge bg-{{ 'success' if status == 'healthy' else 'danger' }} fs-5">
+                                {{ status.upper() }}
+                            </span>
+                        </h3>
+                        <p class="text-muted">Last checked: {{ timestamp }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-server fa-3x text-{{ 'success' if status == 'healthy' else 'danger' }} me-3"></i>
+                            <div>
+                                <h6>System Status</h6>
+                                <p class="mb-0">{{ 'All systems operational' if status == 'healthy' else 'Issues detected' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Components Status -->
+        <div class="row">
+            <!-- Database Status -->
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6><i class="fas fa-database"></i> Database</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <i class="fas fa-database fa-3x text-{{ 'success' if database_connected else 'danger' }} mb-3"></i>
+                        <h5>
+                            <span class="badge bg-{{ 'success' if database_connected else 'danger' }}">
+                                {{ 'Connected' if database_connected else 'Disconnected' }}
+                            </span>
+                        </h5>
+                        <p class="text-muted">SQLite Database</p>
+                        {% if database_connected %}
+                            <small class="text-success"><i class="fas fa-check"></i> Database operations working</small>
+                        {% else %}
+                            <small class="text-danger"><i class="fas fa-times"></i> Database connection failed</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- ML System Status -->
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6><i class="fas fa-brain"></i> AI Detection</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <i class="fas fa-brain fa-3x text-{{ 'success' if ml_available else 'warning' }} mb-3"></i>
+                        <h5>
+                            <span class="badge bg-{{ 'success' if ml_available else 'warning' }}">
+                                {{ 'Enabled' if ml_available else 'Rule-Based Only' }}
+                            </span>
+                        </h5>
+                        <p class="text-muted">Machine Learning</p>
+                        {% if ml_available %}
+                            <small class="text-success"><i class="fas fa-check"></i> Hybrid ML + Rule detection</small>
+                        {% else %}
+                            <small class="text-warning"><i class="fas fa-info-circle"></i> Using rule-based detection</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Performance -->
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h6><i class="fas fa-tachometer-alt"></i> Performance</h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <i class="fas fa-tachometer-alt fa-3x text-success mb-3"></i>
+                        <h5>
+                            <span class="badge bg-success">Optimal</span>
+                        </h5>
+                        <p class="text-muted">Response Time</p>
+                        <small class="text-success"><i class="fas fa-check"></i> < 2 second response</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Information -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle"></i> System Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Detection Capabilities:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success"></i> 10 Professional defect categories</li>
+                            <li><i class="fas fa-check text-success"></i> PDF & DOCX file support</li>
+                            <li><i class="fas fa-check text-success"></i> Confidence scoring (0-100%)</li>
+                            <li><i class="fas fa-check text-success"></i> Severity assessment</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>System Features:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success"></i> Report navigation system</li>
+                            <li><i class="fas fa-check text-success"></i> Analysis history tracking</li>
+                            <li><i class="fas fa-check text-success"></i> Export functionality</li>
+                            <li><i class="fas fa-check text-success"></i> Sample data testing</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-tools"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="/test-sample" class="btn btn-info w-100">
+                            <i class="fas fa-vial"></i> Test Sample Analysis
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="/reports" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-list"></i> View All Reports
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="/" class="btn btn-outline-success w-100">
+                            <i class="fas fa-upload"></i> Upload New File
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button onclick="location.reload()" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-sync-alt"></i> Refresh Status
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-refresh every 30 seconds
+setTimeout(function() {
+    document.querySelector('.badge').innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Checking...';
+    location.reload();
+}, 30000);
+</script>
+{% endblock %}

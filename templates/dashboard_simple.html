@@ -175,10 +175,10 @@
                         <a href="/" class="btn btn-primary btn-lg me-3">
                             <i class="fas fa-upload me-2"></i>New Analysis
                         </a>
-                        <a href="/test-sample" class="btn btn-outline-success btn-lg me-3" target="_blank">
+                        <a href="/test-sample" class="btn btn-outline-success btn-lg me-3">
                             <i class="fas fa-play me-2"></i>Test Sample
                         </a>
-                        <a href="/api/health" class="btn btn-outline-info btn-lg" target="_blank">
+                        <a href="/health" class="btn btn-outline-info btn-lg">
                             <i class="fas fa-heart me-2"></i>System Health
                         </a>
                     </div>
@@ -193,7 +193,7 @@
     <script>
         // Defect Distribution Chart
         const ctx = document.getElementById('defectDistributionChart').getContext('2d');
-        const defectData = {{ defect_distribution | tojson }};
+        const defectData = JSON.parse('{{ defect_distribution | tojson | safe }}');
         
         new Chart(ctx, {
             type: 'pie',

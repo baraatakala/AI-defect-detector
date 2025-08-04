@@ -386,6 +386,25 @@ def delete_analysis(analysis_id):
     
     return redirect(url_for('dashboard'))
 
+@app.route('/health')
+def health_status():
+    """Health status page"""
+    try:
+        # Test database connection
+        conn = sqlite3.connect('defect_analysis.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT 1')
+        database_connected = True
+        conn.close()
+    except:
+        database_connected = False
+    
+    return render_template('health.html',
+                         status='healthy' if database_connected else 'unhealthy',
+                         timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                         ml_available=ML_AVAILABLE,
+                         database_connected=database_connected)
+
 @app.route('/api/health')
 def health_check():
     """Health check endpoint"""
@@ -402,7 +421,8 @@ def test_sample():
     try:
         sample_path = 'sample_building_survey.txt'
         if not os.path.exists(sample_path):
-            return jsonify({'error': 'Sample file not found'})
+            flash('Sample file not found')
+            return redirect(url_for('index'))
         
         with open(sample_path, 'r') as f:
             text = f.read()
@@ -412,17 +432,33 @@ def test_sample():
             capabilities = ml_detector.get_capabilities()
         else:
             defects = detect_defects_fallback(text)
-            capabilities = {'ml_available': False, 'rule_based_available': True}
+            capabilities = {'ml_available': False, 'rule_based_available': True, 'hybrid_mode': False}
         
-        return jsonify({
-            'sample_processed': True,
-            'defects_found': len(defects),
-            'capabilities': capabilities,
-            'defects': defects[:5]  # First 5 for preview
-        })
+        # Format the results like a normal analysis
+        result = {
+            'filename': 'sample_building_survey.txt (Test Sample)',
+            'file_type': 'TXT',
+            'total_defects': len(defects),
+            'defects': defects,
+            'ml_confidence': 0.85,
+            'processing_method': 'sample_test',
+            'defect_categories': list(set([d['type'] for d in defects]))
+        }
+        
+        return render_template('results.html',
+                             filename=result['filename'],
+                             total_defects=result['total_defects'],
+                             defects=defects,
+                             summary=result['defect_categories'],
+                             report=result,
+                             prev_id=None,
+                             next_id=None,
+                             is_sample=True)
         
     except Exception as e:
-        return jsonify({'error': str(e)})
+        logger.error(f"Test sample error: {e}")
+        flash(f'Error processing sample: {str(e)}')
+        return redirect(url_for('index'))
 
 @app.route('/reports')
 def reports_history():

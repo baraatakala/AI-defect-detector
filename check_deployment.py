@@ -10,10 +10,11 @@ from datetime import datetime
 def check_deployment_status():
     """Check if the app is deployed and working"""
     
-    # Your Railway project URLs
+    # Your Railway project URLs (AI-defect-detector)
     possible_urls = [
         "https://defect-production.up.railway.app",
-        "https://web-production-56507d0f.up.railway.app"
+        "https://web-production-56507d0f.up.railway.app",
+        "https://ai-defect-detector-production.up.railway.app"
     ]
     
     print("🚀 Checking Railway deployment status...")

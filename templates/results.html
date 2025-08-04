@@ -55,7 +55,13 @@
     <div class="col-12">
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><i class="fas fa-clipboard-check"></i> Analysis Results</h2>
+            <h2>
+                <i class="fas fa-clipboard-check"></i> 
+                Analysis Results
+                {% if is_sample %}
+                    <span class="badge bg-info ms-2">Sample Test</span>
+                {% endif %}
+            </h2>
             <div>
                 <a href="/reports" class="btn btn-outline-info me-2">
                     <i class="fas fa-list"></i> All Reports
@@ -74,7 +80,11 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <p><strong>File:</strong> {{ filename }}</p>
+                        <p><strong>File:</strong> {{ filename }}
+                            {% if is_sample %}
+                                <br><small class="text-muted"><i class="fas fa-info-circle"></i> This is a demonstration using sample building survey data</small>
+                            {% endif %}
+                        </p>
                         <p><strong>Total Defects Found:</strong> 
                             <span class="badge bg-{% if total_defects > 5 %}danger{% elif total_defects > 2 %}warning{% else %}success{% endif %} fs-6">
                                 {{ total_defects }}
