@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Building Defect Detector</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        .feature-card {
+            transition: transform 0.3s ease;
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        .upload-area {
+            border: 3px dashed #007bff;
+            border-radius: 15px;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            background-color: #f8f9fa;
+            border-color: #0056b3;
+        }
+        .upload-area.dragover {
+            background-color: #e3f2fd;
+            border-color: #1976d2;
+        }
+        .capability-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .capability-enabled {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .capability-disabled {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4rem 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1 class="display-4 fw-bold mb-3">
+                        <i class="fas fa-search-plus me-3"></i>
+                        Enhanced Building Defect Detector
+                    </h1>
+                    <p class="lead mb-4">
+                        Advanced AI-powered analysis of building survey reports with machine learning, 
+                        image processing, and location visualization capabilities.
+                    </p>
+                    <div class="mb-4">
+                        <span class="capability-badge {{ 'capability-enabled' if ml_available else 'capability-disabled' }}">
+                            <i class="fas fa-brain me-2"></i>Machine Learning {{ 'Enabled' if ml_available else 'Disabled' }}
+                        </span>
+                        <span class="capability-badge {{ 'capability-enabled' if image_processing_available else 'capability-disabled' }}">
+                            <i class="fas fa-camera me-2"></i>Image Processing {{ 'Enabled' if image_processing_available else 'Disabled' }}
+                        </span>
+                        <span class="capability-badge capability-enabled">
+                            <i class="fas fa-map-marked-alt me-2"></i>Location Mapping Enabled
+                        </span>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-center">
+                    <i class="fas fa-building feature-icon text-white"></i>
+                    <h4>Professional Survey Analysis</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mt-5">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Upload Section -->
+        <div class="row justify-content-center mb-5">
+            <div class="col-lg-8">
+                <div class="card shadow-lg">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="card-title mb-0">
+                            <i class="fas fa-upload me-2"></i>Upload Survey Document or Image
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+                            <div class="upload-area" id="uploadArea">
+                                <i class="fas fa-cloud-upload-alt feature-icon text-primary"></i>
+                                <h4>Drag & Drop or Click to Upload</h4>
+                                <p class="text-muted mb-3">
+                                    Supported formats: PDF, DOCX, DOC, JPG, JPEG, PNG, BMP, TIFF
+                                </p>
+                                <input type="file" 
+                                       class="form-control" 
+                                       id="file" 
+                                       name="file" 
+                                       accept=".pdf,.docx,.doc,.jpg,.jpeg,.png,.bmp,.tiff"
+                                       style="display: none;">
+                                <button type="button" class="btn btn-primary btn-lg" onclick="document.getElementById('file').click();">
+                                    <i class="fas fa-folder-open me-2"></i>Choose File
+                                </button>
+                            </div>
+                            <div id="fileInfo" class="mt-3" style="display: none;">
+                                <div class="alert alert-info">
+                                    <strong>Selected File:</strong> <span id="fileName"></span><br>
+                                    <strong>Size:</strong> <span id="fileSize"></span><br>
+                                    <strong>Type:</strong> <span id="fileType"></span>
+                                </div>
+                                <button type="submit" class="btn btn-success btn-lg w-100" id="uploadBtn">
+                                    <i class="fas fa-analyze me-2"></i>Analyze for Defects
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <h2 class="text-center mb-4">
+                    <i class="fas fa-star me-2"></i>Advanced Detection Capabilities
+                </h2>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-brain feature-icon text-primary"></i>
+                        <h4>ML-Powered Analysis</h4>
+                        <p class="text-muted">
+                            {{ 'BERT-based transformer models with hybrid detection combining rule-based and machine learning approaches' if ml_available else 'Advanced rule-based detection with comprehensive pattern matching' }}
+                        </p>
+                        <div class="badge {{ 'bg-success' if ml_available else 'bg-warning' }}">
+                            {{ 'ML Active' if ml_available else 'Rule-Based Active' }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-camera feature-icon text-success"></i>
+                        <h4>Image Processing</h4>
+                        <p class="text-muted">
+                            {{ 'Computer vision analysis for visual defect detection in building photos with crack, moisture, and corrosion detection' if image_processing_available else 'Image processing capabilities not available - install required dependencies' }}
+                        </p>
+                        <div class="badge {{ 'bg-success' if image_processing_available else 'bg-danger' }}">
+                            {{ 'Available' if image_processing_available else 'Unavailable' }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-map-marked-alt feature-icon text-info"></i>
+                        <h4>Location Mapping</h4>
+                        <p class="text-muted">
+                            Interactive floor plan heatmaps and geographic visualization of defect locations with building area analysis
+                        </p>
+                        <div class="badge bg-success">Always Available</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detection Categories -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <h3 class="text-center mb-4">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Defect Categories Detected
+                </h3>
+            </div>
+            <div class="col-lg-6 mb-3">
+                <div class="list-group">
+                    <div class="list-group-item d-flex align-items-center">
+                        <i class="fas fa-crack text-danger me-3"></i>
+                        <div>
+                            <strong>Structural Cracks</strong>
+                            <small class="d-block text-muted">Fissures, splits, fractures in walls and foundations</small>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex align-items-center">
+                        <i class="fas fa-tint text-primary me-3"></i>
+                        <div>
+                            <strong>Moisture & Damp</strong>
+                            <small class="d-block text-muted">Water damage, humidity issues, dampness</small>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex align-items-center">
+                        <i class="fas fa-rust text-warning me-3"></i>
+                        <div>
+                            <strong>Corrosion & Rust</strong>
+                            <small class="d-block text-muted">Metal deterioration, oxidation, rust formation</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-3">
+                <div class="list-group">
+                    <div class="list-group-item d-flex align-items-center">
+                        <i class="fas fa-virus text-success me-3"></i>
+                        <div>
+                            <strong>Mold & Fungus</strong>
+                            <small class="d-block text-muted">Mould growth, fungal infections, mildew</small>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex align-items-center">
+                        <i class="fas fa-bolt text-warning me-3"></i>
+                        <div>
+                            <strong>Electrical Issues</strong>
+                            <small class="d-block text-muted">Wiring problems, electrical faults, power issues</small>
+                        </div>
+                    </div>
+                    <div class="list-group-item d-flex align-items-center">
+                        <i class="fas fa-wrench text-info me-3"></i>
+                        <div>
+                            <strong>Plumbing Problems</strong>
+                            <small class="d-block text-muted">Pipe damage, leaks, water system issues</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="row mb-5">
+            <div class="col-12 text-center">
+                <h3 class="mb-4">
+                    <i class="fas fa-rocket me-2"></i>Quick Actions
+                </h3>
+                <div class="btn-group" role="group">
+                    <a href="/dashboard" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-chart-pie me-2"></i>View Dashboard
+                    </a>
+                    <a href="/api/stats" class="btn btn-outline-info btn-lg" target="_blank">
+                        <i class="fas fa-chart-bar me-2"></i>API Statistics
+                    </a>
+                    <a href="/api/health" class="btn btn-outline-success btn-lg" target="_blank">
+                        <i class="fas fa-heart me-2"></i>System Health
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-2">
+                <i class="fas fa-cogs me-2"></i>Enhanced Building Defect Detector
+            </p>
+            <p class="mb-0 text-muted">
+                Powered by {{ 'Machine Learning' if ml_available else 'Rule-Based Analysis' }} 
+                {{ '+ Computer Vision' if image_processing_available else '' }} + Location Intelligence
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Enhanced file upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('file');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const fileType = document.getElementById('fileType');
+
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelection(files[0]);
+            }
+        });
+
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                handleFileSelection(fileInput.files[0]);
+            }
+        });
+
+        function handleFileSelection(file) {
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileType.textContent = getFileType(file.name);
+            fileInfo.style.display = 'block';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function getFileType(filename) {
+            const ext = filename.split('.').pop().toUpperCase();
+            const types = {
+                'PDF': 'Document',
+                'DOCX': 'Document', 
+                'DOC': 'Document',
+                'JPG': 'Image',
+                'JPEG': 'Image',
+                'PNG': 'Image',
+                'BMP': 'Image',
+                'TIFF': 'Image'
+            };
+            return types[ext] || 'Unknown';
+        }
+
+        // Loading state for upload
+        document.getElementById('uploadForm').addEventListener('submit', function() {
+            const uploadBtn = document.getElementById('uploadBtn');
+            uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analyzing...';
+            uploadBtn.disabled = true;
+        });
+    </script>
+</body>
+</html>

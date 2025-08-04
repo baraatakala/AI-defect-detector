@@ -1,0 +1,88 @@
+/* Custom styles for Building Defect Detector */
+
+.card-hover:hover {
+    transform: translateY(-5px);
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.defect-card {
+    border-left: 4px solid #dc3545;
+    margin-bottom: 1rem;
+}
+
+.severity-low {
+    border-left-color: #28a745 !important;
+}
+
+.severity-medium {
+    border-left-color: #ffc107 !important;
+}
+
+.severity-high {
+    border-left-color: #dc3545 !important;
+}
+
+.loading-spinner {
+    display: none;
+}
+
+.navbar-brand {
+    font-weight: bold;
+}
+
+.btn-file {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-file input[type=file] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 100px;
+    text-align: right;
+    filter: alpha(opacity=0);
+    opacity: 0;
+    outline: none;
+    background: white;
+    cursor: inherit;
+    display: block;
+}
+
+.upload-area {
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    padding: 40px;
+    text-align: center;
+    margin: 20px 0;
+    transition: border-color 0.3s ease;
+}
+
+.upload-area:hover {
+    border-color: #007bff;
+}
+
+.upload-area.dragover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+}
+
+.defect-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+}
+
+.stats-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}

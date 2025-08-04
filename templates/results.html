@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Results - Building Defect Detector{% endblock %}
+
+{% block content %}
+<!-- Navigation Breadcrumb -->
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item"><a href="/reports">Reports History</a></li>
+        <li class="breadcrumb-item active" aria-current="page">
+            {% if report %}Report #{{ report.id }}{% else %}Analysis Results{% endif %}
+        </li>
+    </ol>
+</nav>
+
+<!-- Previous/Next Navigation -->
+{% if prev_id or next_id %}
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                {% if prev_id %}
+                    <a href="/report/{{ prev_id }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-chevron-left"></i> Previous Report
+                    </a>
+                {% else %}
+                    <span class="btn btn-outline-secondary disabled">
+                        <i class="fas fa-chevron-left"></i> Previous Report
+                    </span>
+                {% endif %}
+            </div>
+            <div class="text-center">
+                {% if report %}
+                    <span class="badge bg-primary fs-6">Report ID: {{ report.id }}</span>
+                {% endif %}
+            </div>
+            <div>
+                {% if next_id %}
+                    <a href="/report/{{ next_id }}" class="btn btn-outline-secondary">
+                        Next Report <i class="fas fa-chevron-right"></i>
+                    </a>
+                {% else %}
+                    <span class="btn btn-outline-secondary disabled">
+                        Next Report <i class="fas fa-chevron-right"></i>
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-12">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-clipboard-check"></i> Analysis Results</h2>
+            <div>
+                <a href="/reports" class="btn btn-outline-info me-2">
+                    <i class="fas fa-list"></i> All Reports
+                </a>
+                <a href="/" class="btn btn-outline-primary">
+                    <i class="fas fa-upload"></i> New Analysis
+                </a>
+            </div>
+        </div>
+
+        <!-- Summary Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-file-alt"></i> Report Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>File:</strong> {{ filename }}</p>
+                        <p><strong>Total Defects Found:</strong> 
+                            <span class="badge bg-{% if total_defects > 5 %}danger{% elif total_defects > 2 %}warning{% else %}success{% endif %} fs-6">
+                                {{ total_defects }}
+                            </span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Analysis Date:</strong> <span id="currentDate"></span></p>
+                        <p><strong>Status:</strong> 
+                            <span class="badge bg-success">Complete</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Defect Summary Chart -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-pie"></i> Defects by Category</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if summary %}
+                            <canvas id="defectChart" width="400" height="300"></canvas>
+                        {% else %}
+                            <div class="text-center text-muted">
+                                <i class="fas fa-check-circle fa-3x"></i>
+                                <p class="mt-2">No defects detected!</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5><i class="fas fa-list-ol"></i> Category Breakdown</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if summary %}
+                            {% for defect_type, count in summary.items() %}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>{{ defect_type }}</span>
+                                <span class="badge bg-secondary">{{ count }}</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">No defects found in this report.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Defect List -->
+        {% if defects %}
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-exclamation-triangle"></i> Detailed Findings</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for defect in defects %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card defect-card severity-{{ defect.severity.lower() }}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title text-danger">
+                                        <i class="fas fa-exclamation-circle"></i> {{ defect.type }}
+                                    </h6>
+                                    <span class="badge bg-warning">{{ defect.severity }}</span>
+                                </div>
+                                <p class="card-text"><strong>Keyword:</strong> "{{ defect.keyword }}"</p>
+                                <p class="card-text"><small class="text-muted">{{ defect.sentence[:150] }}{% if defect.sentence|length > 150 %}...{% endif %}</small></p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="text-center mt-4">
+            <button class="btn btn-success me-2" onclick="exportToPDF()">
+                <i class="fas fa-file-pdf"></i> Export PDF Report
+            </button>
+            <button class="btn btn-info me-2" onclick="exportToCSV()">
+                <i class="fas fa-file-csv"></i> Export CSV
+            </button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">
+                <i class="fas fa-chart-line"></i> View Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='results.js') }}"></script>
+<script>
+// Initialize the page when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    const summaryData = JSON.parse('{{ summary | tojson | safe }}' || '{}');
+    const defectsData = JSON.parse('{{ defects | tojson | safe }}' || '[]');
+    const filename = '{{ filename | safe }}';
+    
+    // Initialize charts and page functionality
+    if (typeof initializeResultsPage === 'function') {
+        initializeResultsPage(summaryData, defectsData, filename);
+    }
+    
+    // Set current date
+    const currentDateElement = document.getElementById('currentDate');
+    if (currentDateElement) {
+        currentDateElement.textContent = new Date().toLocaleDateString();
+    }
+});
+
+// Export functions
+function exportToPDF() {
+    alert('PDF export feature coming soon!');
+}
+
+function exportToCSV() {
+    // Simple CSV export functionality
+    const defects = JSON.parse('{{ defects | tojson | safe }}' || '[]');
+    const filename = '{{ filename | safe }}';
+    
+    let csv = 'Type,Severity,Confidence,Description\n';
+    defects.forEach(defect => {
+        csv += `"${defect.type}","${defect.severity}","${defect.confidence}","${defect.sentence}"\n`;
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = `defects_${filename}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+}
+</script>
+{% endblock %}

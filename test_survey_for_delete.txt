@@ -1,0 +1,20 @@
+Building Survey Report - Test Document
+
+Property: 123 Main Street
+Date: August 4, 2025
+Surveyor: Test Inspector
+
+DEFECTS IDENTIFIED:
+
+1. CRACKS - Visible cracks in the east wall foundation, approximately 2mm wide
+2. DAMP - Moisture stains detected in basement area, likely due to poor ventilation
+3. MOLD - Black mold growth observed in bathroom ceiling corners
+4. STRUCTURAL - Minor sagging noted in the main support beam
+5. ELECTRICAL - Outdated wiring system requires immediate attention
+
+RECOMMENDATIONS:
+- Immediate repair of structural issues
+- Electrical system upgrade required
+- Moisture control implementation needed
+
+End of Report

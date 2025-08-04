@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Analysis Results - Building Defect Detector</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        .defect-card {
+            border-left: 5px solid;
+            margin-bottom: 1rem;
+            transition: transform 0.2s ease;
+        }
+        .defect-card:hover {
+            transform: translateX(5px);
+        }
+        .defect-type-Cracks { border-left-color: #dc3545; }
+        .defect-type-Damp { border-left-color: #007bff; }
+        .defect-type-Corrosion { border-left-color: #fd7e14; }
+        .defect-type-Mold { border-left-color: #198754; }
+        .defect-type-Structural { border-left-color: #6f42c1; }
+        .defect-type-Electrical { border-left-color: #ffc107; }
+        .defect-type-Plumbing { border-left-color: #20c997; }
+        
+        .confidence-bar {
+            height: 10px;
+            border-radius: 5px;
+            background-color: #e9ecef;
+            overflow: hidden;
+        }
+        .confidence-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        .confidence-high { background-color: #28a745; }
+        .confidence-medium { background-color: #ffc107; }
+        .confidence-low { background-color: #dc3545; }
+        
+        .image-container {
+            max-height: 400px;
+            overflow: hidden;
+            border-radius: 10px;
+        }
+        
+        #floorPlanHeatmap {
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            background-color: #f8f9fa;
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+        }
+        
+        .method-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .method-ml { background-color: #d4edda; color: #155724; }
+        .method-rule { background-color: #fff3cd; color: #856404; }
+        .method-hybrid { background-color: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-search-plus me-2"></i>Enhanced Defect Detector
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">
+                    <i class="fas fa-chart-pie me-1"></i>Dashboard
+                </a>
+                <a class="nav-link" href="/">
+                    <i class="fas fa-upload me-1"></i>New Analysis
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% if result_type == 'document' %}
+        <!-- Document Analysis Results -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card stats-card mb-4">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h2 class="card-title mb-3">
+                                    <i class="fas fa-file-alt me-2"></i>Document Analysis Complete
+                                </h2>
+                                <h4 class="mb-2">{{ result.filename }}</h4>
+                                <p class="mb-0">
+                                    <span class="method-badge method-{{ result.processing_method.replace('_', '-') }}">
+                                        {{ result.processing_method.replace('_', ' ').title() }}
+                                    </span>
+                                    {% if result.ml_confidence %}
+                                    <span class="ms-2">
+                                        <i class="fas fa-brain me-1"></i>
+                                        ML Confidence: {{ "%.1f"|format(result.ml_confidence * 100) }}%
+                                    </span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <div class="display-4 fw-bold">{{ result.total_defects }}</div>
+                                <div>Defects Found</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Location Heatmap -->
+        {% if result.defects %}
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-map-marked-alt me-2"></i>Defect Location Heatmap
+                        </h4>
+                    </div>
+                    <div class="card-body text-center">
+                        <div id="floorPlanHeatmap"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Charts Row -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-pie me-2"></i>Defect Distribution
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="defectChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>Confidence Levels
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="confidenceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Defects List -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">
+                            <i class="fas fa-list me-2"></i>Detected Defects ({{ result.defects|length }})
+                        </h4>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-primary btn-sm" onclick="exportResults('pdf')">
+                                <i class="fas fa-file-pdf me-1"></i>Export PDF
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" onclick="exportResults('excel')">
+                                <i class="fas fa-file-excel me-1"></i>Export Excel
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% for defect in result.defects %}
+                        <div class="defect-card defect-type-{{ defect.type }} card">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <h6 class="mb-0 me-3">
+                                                <span class="badge bg-{{ 'danger' if defect.type == 'Cracks' else 'primary' if defect.type == 'Damp' else 'warning' if defect.type == 'Corrosion' else 'success' if defect.type == 'Mold' else 'dark' if defect.type == 'Structural' else 'info' }}">
+                                                    {{ defect.type }}
+                                                </span>
+                                            </h6>
+                                            <small class="text-muted">
+                                                Severity: {{ defect.severity or 'Medium' }}
+                                            </small>
+                                        </div>
+                                        <p class="mb-2">{{ defect.sentence }}</p>
+                                        {% if defect.detection_method %}
+                                        <small class="text-muted">
+                                            <i class="fas fa-cog me-1"></i>
+                                            Detection Method: {{ defect.detection_method.replace('_', ' ').title() }}
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-end">
+                                            <div class="mb-2">
+                                                <strong>{{ "%.1f"|format(defect.confidence * 100) }}%</strong>
+                                                <small class="text-muted">confidence</small>
+                                            </div>
+                                            <div class="confidence-bar">
+                                                <div class="confidence-fill confidence-{{ 'high' if defect.confidence > 0.7 else 'medium' if defect.confidence > 0.4 else 'low' }}" 
+                                                     style="width: {{ defect.confidence * 100 }}%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% elif result_type == 'image' %}
+        <!-- Image Analysis Results -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card stats-card mb-4">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h2 class="card-title mb-3">
+                                    <i class="fas fa-camera me-2"></i>Image Analysis Complete
+                                </h2>
+                                <h4 class="mb-2">{{ result.image_name }}</h4>
+                                <p class="mb-0">
+                                    <span class="me-3">
+                                        <i class="fas fa-expand-arrows-alt me-1"></i>
+                                        {{ result.image_dimensions.width }} × {{ result.image_dimensions.height }} pixels
+                                    </span>
+                                    {% if result.confidence_scores.overall %}
+                                    <span>
+                                        <i class="fas fa-percentage me-1"></i>
+                                        Overall Confidence: {{ "%.1f"|format(result.confidence_scores.overall * 100) }}%
+                                    </span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <div class="display-4 fw-bold">{{ result.defects_detected|length }}</div>
+                                <div>Visual Defects Found</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Display -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Original Image</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="image-container">
+                            <img src="data:image/jpeg;base64,{{ result.original_image_base64 }}" 
+                                 class="img-fluid w-100" alt="Original Survey Image">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Annotated Analysis</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="image-container">
+                            <img src="{{ result.annotated_image_base64 }}" 
+                                 class="img-fluid w-100" alt="Annotated Defect Analysis">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Defects List -->
+        {% if result.defects_detected %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">
+                            <i class="fas fa-bug me-2"></i>Visual Defects Detected
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        {% for defect in result.defects_detected %}
+                        <div class="defect-card defect-type-{{ defect.type }} card">
+                            <div class="card-body">
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <h6 class="mb-2">
+                                            <span class="badge bg-{{ 'danger' if defect.type == 'crack' else 'primary' if defect.type == 'moisture' else 'warning' if defect.type == 'corrosion' else 'success' }}">
+                                                {{ defect.type.title() }}
+                                            </span>
+                                        </h6>
+                                        {% if defect.bbox %}
+                                        <p class="mb-0 text-muted">
+                                            <i class="fas fa-map-pin me-1"></i>
+                                            Location: ({{ defect.bbox[0] }}, {{ defect.bbox[1] }}) 
+                                            Size: {{ defect.bbox[2] }} × {{ defect.bbox[3] }} pixels
+                                        </p>
+                                        {% endif %}
+                                        {% if defect.area_pixels %}
+                                        <p class="mb-0 text-muted">
+                                            <i class="fas fa-expand me-1"></i>
+                                            Area: {{ defect.area_pixels }} pixels
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-end">
+                                            <div class="mb-2">
+                                                <strong>{{ "%.1f"|format(defect.confidence * 100) }}%</strong>
+                                                <small class="text-muted">confidence</small>
+                                            </div>
+                                            <div class="confidence-bar">
+                                                <div class="confidence-fill confidence-{{ 'high' if defect.confidence > 0.7 else 'medium' if defect.confidence > 0.4 else 'low' }}" 
+                                                     style="width: {{ defect.confidence * 100 }}%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="row mt-4 mb-5">
+            <div class="col-12 text-center">
+                <div class="btn-group" role="group">
+                    <a href="/" class="btn btn-primary btn-lg">
+                        <i class="fas fa-upload me-2"></i>Analyze Another File
+                    </a>
+                    <a href="/dashboard" class="btn btn-outline-info btn-lg">
+                        <i class="fas fa-chart-pie me-2"></i>View Dashboard
+                    </a>
+                    {% if result_type == 'document' and result.analysis_id %}
+                    <a href="/analysis/{{ result.analysis_id }}" class="btn btn-outline-success btn-lg">
+                        <i class="fas fa-eye me-2"></i>Detailed View
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='location_heatmap.js') }}"></script>
+    
+    <script>
+        {% if result_type == 'document' and result.defects %}
+        // Prepare data for charts
+        const defectsData = {{ result.defects | tojson }};
+        
+        // Create defect type distribution chart
+        const defectCounts = {};
+        const confidenceLevels = { high: 0, medium: 0, low: 0 };
+        
+        defectsData.forEach(defect => {
+            // Count by type
+            defectCounts[defect.type] = (defectCounts[defect.type] || 0) + 1;
+            
+            // Count by confidence level
+            if (defect.confidence > 0.7) confidenceLevels.high++;
+            else if (defect.confidence > 0.4) confidenceLevels.medium++;
+            else confidenceLevels.low++;
+        });
+        
+        // Defect Distribution Pie Chart
+        const ctx1 = document.getElementById('defectChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(defectCounts),
+                datasets: [{
+                    data: Object.values(defectCounts),
+                    backgroundColor: [
+                        '#dc3545', '#007bff', '#fd7e14', '#198754', 
+                        '#6f42c1', '#ffc107', '#20c997'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+        
+        // Confidence Levels Bar Chart
+        const ctx2 = document.getElementById('confidenceChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: ['High (>70%)', 'Medium (40-70%)', 'Low (<40%)'],
+                datasets: [{
+                    label: 'Number of Defects',
+                    data: [confidenceLevels.high, confidenceLevels.medium, confidenceLevels.low],
+                    backgroundColor: ['#28a745', '#ffc107', '#dc3545']
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+        
+        // Initialize location heatmap
+        initializeLocationVisualization(defectsData, 'floorPlanHeatmap');
+        {% endif %}
+        
+        function exportResults(format) {
+            // Implementation for export functionality
+            alert(`Export to ${format.toUpperCase()} functionality will be implemented`);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Building Defect Detector{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-chart-line"></i> Analytics Dashboard</h2>
+        <p class="text-muted mb-4">View historical analysis data and trends</p>
+
+        {% if analyses %}
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-history"></i> Recent Analyses</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Filename</th>
+                                <th>Total Defects</th>
+                                <th>Top Defect Types</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for analysis in analyses %}
+                            <tr>
+                                <td>{{ analysis[2][:16] }}</td>
+                                <td>
+                                    <i class="fas fa-file-alt"></i> {{ analysis[1] }}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if analysis[3] > 5 %}danger{% elif analysis[3] > 2 %}warning{% else %}success{% endif %}">
+                                        {{ analysis[3] }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if analysis[4] %}
+                                        {% set summary_str = analysis[4] %}
+                                        {% if 'Cracks' in summary_str %}
+                                            <small class="badge bg-secondary me-1">Cracks</small>
+                                        {% endif %}
+                                        {% if 'Damp' in summary_str %}
+                                            <small class="badge bg-secondary me-1">Damp</small>
+                                        {% endif %}
+                                        {% if 'Structural' in summary_str %}
+                                            <small class="badge bg-secondary me-1">Structural</small>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('view_analysis', analysis_id=analysis[0]) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i> View Details
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                <h5>No Analysis Data Yet</h5>
+                <p class="text-muted">Upload your first building survey report to see analytics here.</p>
+                <a href="{{ url_for('upload_file') }}" class="btn btn-primary">
+                    <i class="fas fa-upload"></i> Upload First Report
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Dashboard functionality can be added here
+console.log('Dashboard loaded successfully');
+</script>
+{% endblock %}

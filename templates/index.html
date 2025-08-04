@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto text-center">
+        <h1 class="display-4 mb-4">
+            <i class="fas fa-search"></i> Building Defect Detector
+        </h1>
+        <p class="lead mb-5">
+            Upload your building survey reports (PDF or DOCX) and let AI detect potential defects automatically.
+        </p>
+        
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="card h-100 card-hover">
+                    <div class="card-body text-center">
+                        <i class="fas fa-upload fa-3x text-primary mb-3"></i>
+                        <h5>Upload Reports</h5>
+                        <p class="card-text">Upload PDF or DOCX survey reports for analysis</p>
+                        <a href="#upload-section" class="btn btn-primary">
+                            <i class="fas fa-upload"></i> Upload Now
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 card-hover">
+                    <div class="card-body text-center">
+                        <i class="fas fa-brain fa-3x text-success mb-3"></i>
+                        <h5>AI Analysis</h5>
+                        <p class="card-text">Advanced AI detects cracks, damp, corrosion, and more</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 card-hover">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-pie fa-3x text-info mb-3"></i>
+                        <h5>Dashboard</h5>
+                        <p class="card-text">View detailed analytics and defect summaries</p>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-info">
+                            <i class="fas fa-chart-line"></i> View Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Additional Navigation -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-6">
+                <div class="card card-hover">
+                    <div class="card-body text-center">
+                        <i class="fas fa-history fa-2x text-warning mb-3"></i>
+                        <h5>Reports History</h5>
+                        <p class="card-text">Browse and navigate through previously analyzed reports</p>
+                        <a href="/reports" class="btn btn-warning">
+                            <i class="fas fa-history"></i> View Reports
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card card-hover">
+                    <div class="card-body text-center">
+                        <i class="fas fa-vial fa-2x text-secondary mb-3"></i>
+                        <h5>Test Sample</h5>
+                        <p class="card-text">Try the system with our sample building survey report</p>
+                        <a href="/test-sample" class="btn btn-secondary">
+                            <i class="fas fa-play"></i> Test Now
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Form Section -->
+        <div class="row mb-5" id="upload-section">
+            <div class="col-md-8 mx-auto">
+                <div class="card shadow-lg border-primary">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h4><i class="fas fa-upload"></i> Upload Building Survey Report</h4>
+                        <p class="mb-0 small">Get instant AI-powered defect detection results</p>
+                    </div>
+                    <div class="card-body">
+                        <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+                            <div class="mb-4">
+                                <label for="file" class="form-label fw-bold">
+                                    <i class="fas fa-file-upload"></i> Select Your Building Survey Document
+                                </label>
+                                <div class="alert alert-info">
+                                    <small>
+                                        <strong>Supported formats:</strong>
+                                        <i class="fas fa-file-pdf text-danger"></i> PDF, 
+                                        <i class="fas fa-file-word text-primary"></i> DOCX, 
+                                        <i class="fas fa-file-alt text-info"></i> DOC
+                                        <br>
+                                        <strong>Maximum size:</strong> 50MB
+                                        <br>
+                                        <strong>Examples:</strong> Building inspection reports, structural surveys, maintenance reports
+                                    </small>
+                                </div>
+                                <input type="file" 
+                                       class="form-control form-control-lg" 
+                                       id="file" 
+                                       name="file" 
+                                       accept=".pdf,.docx,.doc"
+                                       required>
+                                <div class="form-text">
+                                    <i class="fas fa-shield-alt text-success"></i> Your documents are processed securely and not stored permanently.
+                                </div>
+                            </div>
+                            
+                            <!-- Progress Bar -->
+                            <div class="progress mb-3" id="uploadProgress" style="display: none;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                     role="progressbar" style="width: 100%">
+                                    <i class="fas fa-cog fa-spin"></i> Processing...
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg" id="uploadBtn">
+                                    <i class="fas fa-search"></i> <span id="btnText">Analyze Document</span>
+                                </button>
+                            </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-10 mx-auto">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-list"></i> Detectable Defect Types</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-crack text-danger"></i> Cracks & Fissures</li>
+                                    <li><i class="fas fa-tint text-primary"></i> Damp & Moisture</li>
+                                    <li><i class="fas fa-rust text-warning"></i> Corrosion & Rust</li>
+                                    <li><i class="fas fa-bacteria text-success"></i> Mold & Fungus</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <ul class="list-unstyled">
+                                    <li><i class="fas fa-home text-info"></i> Structural Issues</li>
+                                    <li><i class="fas fa-bolt text-yellow"></i> Electrical Problems</li>
+                                    <li><i class="fas fa-wrench text-secondary"></i> Plumbing Issues</li>
+                                    <li><i class="fas fa-plus text-muted"></i> And More...</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Handle form submission with progress indicators
+    document.getElementById('uploadForm').addEventListener('submit', function() {
+        const uploadBtn = document.getElementById('uploadBtn');
+        const btnText = document.getElementById('btnText');
+        const uploadProgress = document.getElementById('uploadProgress');
+        
+        // Show progress
+        uploadProgress.style.display = 'block';
+        uploadBtn.disabled = true;
+        btnText.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing Document...';
+        
+        // Add visual feedback
+        uploadBtn.classList.remove('btn-primary');
+        uploadBtn.classList.add('btn-warning');
+    });
+    
+    // Enhanced file validation with user feedback
+    document.getElementById('file').addEventListener('change', function() {
+        const file = this.files[0];
+        const maxSize = 50 * 1024 * 1024; // 50MB
+        const uploadBtn = document.getElementById('uploadBtn');
+        const btnText = document.getElementById('btnText');
+        
+        if (file) {
+            // File size validation
+            if (file.size > maxSize) {
+                alert('❌ File size must be less than 50MB. Your file is ' + 
+                      Math.round(file.size / 1024 / 1024) + 'MB');
+                this.value = '';
+                return;
+            }
+            
+            // File type validation
+            const allowedTypes = ['.pdf', '.docx', '.doc'];
+            const fileName = file.name.toLowerCase();
+            const isValidType = allowedTypes.some(type => fileName.endsWith(type));
+            
+            if (!isValidType) {
+                alert('❌ Please upload a PDF, DOCX, or DOC file.');
+                this.value = '';
+                return;
+            }
+            
+            // Success feedback
+            btnText.innerHTML = '✅ Ready to Analyze: ' + file.name;
+            uploadBtn.classList.remove('btn-primary');
+            uploadBtn.classList.add('btn-success');
+            
+            // Show file info
+            console.log('📄 File selected:', file.name, '(' + Math.round(file.size / 1024) + 'KB)');
+        } else {
+            // Reset button
+            btnText.innerHTML = 'Analyze Document';
+            uploadBtn.classList.remove('btn-success');
+            uploadBtn.classList.add('btn-primary');
+        }
+    });
+    
+    // Smooth scroll for upload button
+    document.querySelectorAll('a[href="#upload-section"]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('upload-section').scrollIntoView({
+                behavior: 'smooth'
+            });
+        });
+    });
+</script>
+{% endblock %}

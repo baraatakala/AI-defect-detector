@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Building Defect Detector</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-search-plus me-2"></i>Defect Detector
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link active" href="/dashboard">
+                    <i class="fas fa-chart-pie me-1"></i>Dashboard
+                </a>
+                <a class="nav-link" href="/">
+                    <i class="fas fa-upload me-1"></i>New Analysis
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'check-circle' if category == 'success' else 'info-circle' }} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-chart-line me-2"></i>Analysis Dashboard
+                </h1>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card bg-primary text-white h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-file-alt display-4 mb-3"></i>
+                        <h2 class="mb-0">{{ total_analyses }}</h2>
+                        <p class="mb-0">Total Analyses</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-danger text-white h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-exclamation-triangle display-4 mb-3"></i>
+                        <h2 class="mb-0">{{ total_defects }}</h2>
+                        <p class="mb-0">Total Defects</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-success text-white h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-brain display-4 mb-3"></i>
+                        <h2 class="mb-0">{% if ml_available %}ML{% else %}Rule{% endif %}</h2>
+                        <p class="mb-0">Detection Mode</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card bg-info text-white h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-bar display-4 mb-3"></i>
+                        <h2 class="mb-0">{{ (total_defects / total_analyses) | round(1) if total_analyses > 0 else 0 }}</h2>
+                        <p class="mb-0">Avg Defects/Analysis</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Defect Distribution Chart -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-pie me-2"></i>Defect Type Distribution
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if defect_distribution %}
+                        <canvas id="defectDistributionChart"></canvas>
+                        {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-chart-pie display-4 text-muted"></i>
+                            <p class="text-muted mt-3">No data available</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Analyses -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-clock me-2"></i>Recent Analyses
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_analyses %}
+                        <div class="list-group list-group-flush">
+                            {% for analysis in recent_analyses %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">{{ analysis[1] }}</h6>
+                                    <small class="text-muted">{{ analysis[2] }} • {{ analysis[4] }}</small>
+                                </div>
+                                <div class="text-end d-flex align-items-center gap-2">
+                                    <div>
+                                        <span class="badge bg-primary rounded-pill">{{ analysis[3] }} defects</span>
+                                        <br>
+                                        <small class="text-muted">{{ analysis[5] }}</small>
+                                    </div>
+                                    <div class="btn-group-vertical btn-group-sm" role="group">
+                                        <a href="{{ url_for('analysis_detail', analysis_id=analysis[0]) }}" 
+                                           class="btn btn-outline-info btn-sm" 
+                                           title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <button type="button" 
+                                                class="btn btn-outline-danger btn-sm delete-btn" 
+                                                data-analysis-id="{{ analysis[0] }}"
+                                                data-filename="{{ analysis[1] }}"
+                                                title="Delete Analysis">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox display-4 text-muted"></i>
+                            <p class="text-muted mt-3">No analyses yet</p>
+                            <a href="/" class="btn btn-primary">Start First Analysis</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-bolt me-2"></i>Quick Actions
+                        </h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <a href="/" class="btn btn-primary btn-lg me-3">
+                            <i class="fas fa-upload me-2"></i>New Analysis
+                        </a>
+                        <a href="/test-sample" class="btn btn-outline-success btn-lg me-3" target="_blank">
+                            <i class="fas fa-play me-2"></i>Test Sample
+                        </a>
+                        <a href="/api/health" class="btn btn-outline-info btn-lg" target="_blank">
+                            <i class="fas fa-heart me-2"></i>System Health
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {% if defect_distribution %}
+    <script>
+        // Defect Distribution Chart
+        const ctx = document.getElementById('defectDistributionChart').getContext('2d');
+        const defectData = {{ defect_distribution | tojson }};
+        
+        new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: defectData.map(item => item[0]),
+                datasets: [{
+                    data: defectData.map(item => item[1]),
+                    backgroundColor: [
+                        '#dc3545', '#007bff', '#fd7e14', '#198754', 
+                        '#6f42c1', '#ffc107', '#20c997'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    </script>
+    {% endif %}
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                        Confirm Delete
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this analysis?</p>
+                    <div class="alert alert-info">
+                        <strong>File:</strong> <span id="deleteFileName"></span><br>
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            This will permanently delete the analysis and all related defect records.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancel
+                    </button>
+                    <form id="deleteForm" method="POST" style="display: inline;">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-1"></i>Delete Analysis
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Handle delete button clicks
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const analysisId = this.getAttribute('data-analysis-id');
+                const filename = this.getAttribute('data-filename');
+                
+                // Update modal content
+                document.getElementById('deleteFileName').textContent = filename;
+                document.getElementById('deleteForm').action = '/delete_analysis/' + analysisId;
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+                modal.show();
+            });
+        });
+
+        // Auto-hide flash messages after 5 seconds
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                if (alert.classList.contains('alert-success') || alert.classList.contains('alert-error')) {
+                    alert.style.transition = 'opacity 0.5s';
+                    alert.style.opacity = '0';
+                    setTimeout(() => alert.remove(), 500);
+                }
+            });
+        }, 5000);
+    </script>
+</body>
+</html>

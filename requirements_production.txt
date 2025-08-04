@@ -1,0 +1,6 @@
+Flask==2.3.3
+PyMuPDF==1.23.8
+python-docx==0.8.11
+Werkzeug==2.3.7
+gunicorn==21.2.0
+python-dotenv==1.0.0

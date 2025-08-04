@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Details - Building Defect Detector{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-search"></i> Analysis Details #{{ analysis_id }}</h2>
+            <div>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+                <button class="btn btn-success" onclick="exportDetailedCSV()">
+                    <i class="fas fa-download"></i> Export CSV
+                </button>
+            </div>
+        </div>
+
+        <!-- Analysis Info Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle"></i> Analysis Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Analysis ID:</strong> {{ analysis_id }}</p>
+                        <p><strong>Filename:</strong> {{ filename }}</p>
+                        <p><strong>Analysis Date:</strong> {{ timestamp[:16] }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Total Defects Found:</strong> 
+                            <span class="badge bg-{% if total_defects > 15 %}danger{% elif total_defects > 8 %}warning{% else %}success{% endif %} fs-6">
+                                {{ total_defects }}
+                            </span>
+                        </p>
+                        <p><strong>Categories Detected:</strong> {{ summary.keys() | length }}</p>
+                        <p><strong>Status:</strong> <span class="badge bg-success">Complete</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Defect Summary Chart -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-pie"></i> Defects by Category</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if summary %}
+                            <canvas id="detailChart" width="400" height="300"></canvas>
+                        {% else %}
+                            <div class="text-center text-muted">
+                                <i class="fas fa-check-circle fa-3x"></i>
+                                <p class="mt-2">No defects detected!</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Statistics -->
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5><i class="fas fa-list-ol"></i> Defect Statistics</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if summary %}
+                            {% for defect_type, count in summary.items() %}
+                            <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded">
+                                <div>
+                                    <strong>{{ defect_type }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        {{ "%.1f"|format(count / total_defects * 100) }}% of total defects
+                                    </small>
+                                </div>
+                                <span class="badge bg-primary fs-6">{{ count }}</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">No defects found in this analysis.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Defect List -->
+        {% if defects %}
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-exclamation-triangle"></i> Detailed Findings ({{ defects | length }} items)</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>Defect Type</th>
+                                <th>Keyword</th>
+                                <th>Severity</th>
+                                <th>Context</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for defect in defects %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>
+                                    <span class="badge bg-danger">{{ defect.type }}</span>
+                                </td>
+                                <td>
+                                    <code>"{{ defect.keyword }}"</code>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if defect.severity == 'High' %}danger{% elif defect.severity == 'Medium' %}warning{% else %}success{% endif %}">
+                                        {{ defect.severity }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <small>{{ defect.sentence[:120] }}{% if defect.sentence | length > 120 %}...{% endif %}</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="text-center mt-4 mb-4">
+            <a href="{{ url_for('upload_file') }}" class="btn btn-primary me-2">
+                <i class="fas fa-upload"></i> Analyze New Report
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-chart-line"></i> View All Analyses
+            </a>
+            <button class="btn btn-info" onclick="printAnalysis()">
+                <i class="fas fa-print"></i> Print Report
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if summary %}
+    // Create detailed chart
+    const ctx = document.getElementById('detailChart');
+    if (ctx) {
+        const summaryData = {{ summary | tojson }};
+        
+        new Chart(ctx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(summaryData),
+                datasets: [{
+                    data: Object.values(summaryData),
+                    backgroundColor: [
+                        '#FF6384',
+                        '#36A2EB', 
+                        '#FFCE56',
+                        '#4BC0C0',
+                        '#9966FF',
+                        '#FF9F40',
+                        '#FF1744'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+    {% endif %}
+});
+
+function exportDetailedCSV() {
+    const defectsData = {{ defects | tojson }};
+    const filename = '{{ filename }}';
+    const analysisId = '{{ analysis_id }}';
+    
+    const csvData = [
+        ['Analysis ID', 'Filename', 'Defect #', 'Type', 'Keyword', 'Severity', 'Context']
+    ];
+    
+    defectsData.forEach((defect, index) => {
+        csvData.push([
+            analysisId,
+            filename,
+            index + 1,
+            defect.type,
+            defect.keyword,
+            defect.severity,
+            defect.sentence.substring(0, 300)
+        ]);
+    });
+    
+    let csvContent = csvData.map(row => 
+        row.map(field => '"' + String(field).replace(/"/g, '""') + '"').join(',')
+    ).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'detailed_analysis_' + analysisId + '_' + filename + '.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+function printAnalysis() {
+    window.print();
+}
+</script>
+{% endblock %}

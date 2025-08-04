@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Report - Building Defect Detector{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-upload"></i> Upload Building Survey Report</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                    <div class="mb-4">
+                        <label for="file" class="form-label">Select Report File</label>
+                        <input type="file" class="form-control" id="file" name="file" 
+                               accept=".pdf,.docx,.doc" required>
+                        <div class="form-text">
+                            Supported formats: PDF, DOCX, DOC (Max size: 16MB)
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>What happens next:</strong>
+                            <ol class="mb-0 mt-2">
+                                <li>Your document will be processed to extract text</li>
+                                <li>AI will analyze the content for building defects</li>
+                                <li>You'll receive a detailed report with findings</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                            <i class="fas fa-upload"></i> Analyze Report
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Loading Spinner -->
+                <div class="loading-spinner text-center mt-4" id="loadingSpinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Analyzing your report... Please wait.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sample Data Info -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5><i class="fas fa-lightbulb"></i> Tips for Better Results</h5>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>Ensure your report contains clear descriptions of building conditions</li>
+                    <li>Text-based PDFs work better than scanned images</li>
+                    <li>Include specific terminology like "crack", "damp", "corrosion", etc.</li>
+                    <li>Detailed survey reports provide more accurate defect detection</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    const fileInput = document.getElementById('file');
+    const submitBtn = document.getElementById('submitBtn');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    
+    if (fileInput.files.length === 0) {
+        e.preventDefault();
+        alert('Please select a file to upload.');
+        return;
+    }
+    
+    // Show loading state
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    loadingSpinner.style.display = 'block';
+});
+</script>
+{% endblock %}
